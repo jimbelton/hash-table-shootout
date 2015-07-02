@@ -23,11 +23,11 @@ Install the hash libraries:
 
 Now, run:
 
-'''
+```
 $ make
 $ python bench.py # Note: This step takes MANY HOURS
 $ python make_chart_data.py < output | python `make_html.py`
-'''
+```
 
 Your charts are now in charts.html.
 
@@ -39,9 +39,9 @@ settings in `charts-template.html`.
 
 To run the benchmark at the highest priority possible, do this:
 
-'''
+```
 $ sudo nice -n-20 ionice -c1 -n0 sudo -u $USER python bench.py
-'''
+```
 
 You might also want to disable any swap files/partitions so that swapping
 doesn't influence performance.  The programs will die if they try to
