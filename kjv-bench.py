@@ -7,7 +7,7 @@ for program in programs:
     fastest_attempt = None
 
     for attempt in range(best_out_of):
-        proc = subprocess.Popen(['./build/'+program, "-k"], stdout=subprocess.PIPE)
+        proc = subprocess.Popen(['./build/'+program, "1", "kjvmark"], stdout=subprocess.PIPE)
 
         # wait for the program to fill up memory and spit out its "ready" message
         try:

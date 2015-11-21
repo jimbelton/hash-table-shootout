@@ -18,4 +18,6 @@ typedef PyObject * hash_t;
 #define DELETE_STR_FROM_HASH(key) do { \
         PyDict_DelItemString(hash, key); \
     } while(0)
+#define STR_HASH_GET_SIZE() ((size_t)PyDict_Size(hash))
+
 #include "template.c"

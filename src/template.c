@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
@@ -5,19 +6,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <fcntl.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include <unistd.h>
-#ifdef __cplusplus
-}
-#endif
 
 #ifdef __cplusplus
     #include <fstream>
-//    #define O_RDONLY 0    // Hack because C++ doesn't seem to like <fcntl.h>
 
     size_t filesize(const char* filename)
     {
@@ -25,8 +17,6 @@ extern "C" {
         return (size_t)in.tellg();
     }
 #else
-    #include <fcntl.h>
-
     size_t filesize(const char* filename)
     {
         struct stat fileStat;
