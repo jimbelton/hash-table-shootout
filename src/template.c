@@ -9,6 +9,13 @@
 #include <unistd.h>
 
 #ifdef __cplusplus
+//    #include <string>
+//
+//    std::string nulTerminatedStringToCppString(char * nulTerminatedString) {
+//        std::string cppString(nulTerminatedString);
+//        return cppString;
+//    }
+
     #include <fstream>
 
     size_t filesize(const char* filename)
