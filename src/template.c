@@ -56,13 +56,13 @@ static unsigned long get_data_mem(void)
     char line[256];
     fgets(line, sizeof(line), file);
 
-    if (sscanf(line, "%ld %ld %ld %ld %ld %ld %ld", &discard, &discard, &discard, &discard, &discard, &data, &discard) != 7) {
+    if (sscanf(line, "%lu %lu %lu %lu %lu %lu %lu", &discard, &discard, &discard, &discard, &discard, &data, &discard) != 7) {
         fprintf(stderr, "Failed to scan 7 integers from /proc/self/statm\n");
         exit(1);
     }
 
     fclose(file);
-    return data * (getpagesize() / 1024);
+    return data * getpagesize();
 }
 
 static double get_time(void)
@@ -134,7 +134,6 @@ int main(int argc, char ** argv)
             INSERT_INT_INTO_HASH(i, value);
 
         startTime = get_time();
-        startData = get_data_mem();
 
         for(i = 0; i < num_keys; i++) {
             DELETE_INT_FROM_HASH(i);
@@ -166,7 +165,6 @@ int main(int argc, char ** argv)
             INSERT_STR_INTO_HASH(new_string_from_integer(i), value);
 
         startTime = get_time();
-        startData = get_data_mem();
 
         for(i = 0; i < num_keys; i++) {
             DELETE_STR_FROM_HASH(new_string_from_integer(i));

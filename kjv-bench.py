@@ -50,4 +50,4 @@ for program in programs:
         if not fastest_attempt:
             print "No run of " + program + " succeeded"
         else:
-            print "%s: %fs, %d Kbytes" % (program, fastest_attempt, fastest_data)
+            print "%s: %fs, %d Kbytes" % (program, fastest_attempt, fastest_data / 1024)

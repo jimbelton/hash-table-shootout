@@ -33,7 +33,7 @@ for benchtype in benchtypes:
             points = []
             proc   = subprocess.Popen(['./build/' + program,  benchtype, str(maxkeys), str(interval)], stdout=subprocess.PIPE)
 
-            for size in range(interval, maxkeys, interval):
+            for size in range(interval, maxkeys + 1, interval):
                 # wait for the benchmark to output a time and amount of data memory used
                 line = proc.stdout.readline()
 
@@ -66,7 +66,8 @@ for benchtype in benchtypes:
                 size = (i + 1) * interval
                 outfile.write("%s,%d,%s,%d,%0.6f\n" % (benchtype, size, program, fastest_attempt[i][1], fastest_attempt[i][0]))
 
-            print "%s %s: %d keys, %fs, %d Kbytes" % (program, benchtype, size, fastest_attempt[i][0], fastest_attempt[i][1])
+            print "%s %s: %d keys, %fs, %d Mbytes" % (program, benchtype, size, fastest_attempt[i][0],
+                                                      fastest_attempt[i][1] / 1048576)
 
         else:
             print "No run of %s %s succeeded" % (program, benchtype)
