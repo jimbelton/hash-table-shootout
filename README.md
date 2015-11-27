@@ -1,7 +1,14 @@
 # Hash Table Shootout
 
 A series of benchmarks that run against several hash table implementations,
-written by Nick Welch in 2010. Updated in 2015.
+written by Nick Welch in 2010. Updated in 2015 by Jim Belton.
+
+## Release Notes
+### 2015-11-26
+* Fixed a bug whereby all C++ implementations where hashing pointer values rather than strings
+* Vastly sped up benchmarks from hours to minutes
+* Simplified standard output from benchmarks
+* Added `kjv-bench.py` which benchmarks each hash table implementation by counting the unique words in the King James version of the bible.
 
 ## How to Run the Benchmarks
 
@@ -25,8 +32,9 @@ Now, run:
 
 ```
 $ make
-$ python bench.py # Note: This step takes MANY HOURS
-$ python make_chart_data.py < output | python `make_html.py`
+$ python bench.py # Note: This step takes many minutes.
+$ python make_chart_data.py < output | python make_html.py
+$ python kjv-bench.py # Runs the new KJV benchmark against all the implementations (fast)
 ```
 
 Your charts are now in charts.html.
@@ -49,6 +57,5 @@ allocate too much memory.
 
 ## Copyright Information
 
-Written by Nick Welch in 2010.
-No copyright.  This work is dedicated to the public domain.
-For full details, see http://creativecommons.org/publicdomain/zero/1.0/
+Originally written by Nick Welch in 2010. Updated and enhanced by Jim Belton in 2015
+Copyright by Jim Belton. Licensed under the [MIT License](https://opensource.org/licenses/MIT)
