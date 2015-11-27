@@ -8,23 +8,18 @@
 #include <math.h>
 #include <unistd.h>
 
+/* These functions compute the size of a file in either C++ or C.
+ */
 #ifdef __cplusplus
-//    #include <string>
-//
-//    std::string nulTerminatedStringToCppString(char * nulTerminatedString) {
-//        std::string cppString(nulTerminatedString);
-//        return cppString;
-//    }
-
     #include <fstream>
 
-    size_t filesize(const char* filename)
+    static size_t filesize(const char* filename)
     {
         std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
         return (size_t)in.tellg();
     }
 #else
-    size_t filesize(const char* filename)
+    static size_t filesize(const char* filename)
     {
         struct stat fileStat;
 
@@ -39,18 +34,45 @@
 
 static void usage(const char * program)
 {
-    fprintf(stderr, "usage: %s <numkeys> (sequential|random|delete|sequentialstring|randomstring|deletestring|kjvmark)\n", program);
+    fprintf(stderr,
+            "usage: %s (sequential|random|delete|sequentialstring|randomstring|deletestring|kjvmark) <maxkeys> <increment>\n",
+            program);
     exit(1);
 }
 
-double get_time(void)
+/* This is a non portable Linux function that returns the amount of memory in Kbytes used for data by the process
+ */
+static unsigned long get_data_mem(void)
+{
+    unsigned long data;
+    unsigned long discard;
+    FILE *        file = fopen("/proc/self/statm", "r");
+
+    if (file == NULL) {
+        fprintf(stderr, "Failed to open /proc/self/statm\n");
+        exit(1);
+    }
+
+    char line[256];
+    fgets(line, sizeof(line), file);
+
+    if (sscanf(line, "%ld %ld %ld %ld %ld %ld %ld", &discard, &discard, &discard, &discard, &discard, &data, &discard) != 7) {
+        fprintf(stderr, "Failed to scan 7 integers from /proc/self/statm\n");
+        exit(1);
+    }
+
+    fclose(file);
+    return data * (getpagesize() / 1024);
+}
+
+static double get_time(void)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec + (tv.tv_usec / 1000000.0);
 }
 
-char * new_string_from_integer(int num)
+static char * new_string_from_integer(int num)
 {
     int ndigits = num == 0 ? 1 : (int)log10(num) + 1;
     char * str = (char *)malloc(ndigits + 1);
@@ -58,65 +80,103 @@ char * new_string_from_integer(int num)
     return str;
 }
 
+static int           interval;
+static double        startTime;
+static unsigned long startData;
+
+static void printPoint(int i) {
+    if ((i + 1) % interval != 0)
+        return;
+
+    double        after = get_time();
+    unsigned long data  = get_data_mem();
+    printf("%f %lu\n", after - startTime, data - startData);
+    fflush(stdout);
+}
+
 int main(int argc, char ** argv)
 {
-    int num_keys = atoi(argv[1]);
-    int i, value = 0;
-
-    if (argc <= 2)
+    if (argc <= 3)
         usage(argv[0]);
+
+    char * benchmark = argv[1];
+    int    num_keys  = atoi(argv[2]);
+    int    value     = 0;
+    int    i;
 
     SETUP
 
-    double before = get_time();
+    interval  = atoi(argv[3]);
+    startTime = get_time();
+    startData = get_data_mem();
 
-    if(!strcmp(argv[2], "sequential"))
+    if (!strcmp(benchmark, "sequential"))
     {
-        for(i = 0; i < num_keys; i++)
+        for(i = 0; i < num_keys; i++) {
             INSERT_INT_INTO_HASH(i, value);
+            printPoint(i);
+        }
     }
 
-    else if(!strcmp(argv[2], "random"))
+    else if (!strcmp(benchmark, "random"))
     {
         srandom(1); // for a fair/deterministic comparison
-        for(i = 0; i < num_keys; i++)
+
+        for(i = 0; i < num_keys; i++) {
             INSERT_INT_INTO_HASH((int)random(), value);
+            printPoint(i);
+        }
     }
 
-    else if(!strcmp(argv[2], "delete"))
+    else if (!strcmp(benchmark, "delete"))
     {
         for(i = 0; i < num_keys; i++)
             INSERT_INT_INTO_HASH(i, value);
-        before = get_time();
-        for(i = 0; i < num_keys; i++)
+
+        startTime = get_time();
+        startData = get_data_mem();
+
+        for(i = 0; i < num_keys; i++) {
             DELETE_INT_FROM_HASH(i);
+            printPoint(i);
+        }
     }
 
-    else if(!strcmp(argv[2], "sequentialstring"))
+    else if (!strcmp(benchmark, "sequentialstring"))
     {
-        for(i = 0; i < num_keys; i++)
+        for(i = 0; i < num_keys; i++) {
             INSERT_STR_INTO_HASH(new_string_from_integer(i), value);
+            printPoint(i);
+        }
     }
 
-    else if(!strcmp(argv[2], "randomstring"))
+    else if (!strcmp(benchmark, "randomstring"))
     {
         srandom(1); // for a fair/deterministic comparison
-        for(i = 0; i < num_keys; i++)
+
+        for(i = 0; i < num_keys; i++) {
             INSERT_STR_INTO_HASH(new_string_from_integer((int)random()), value);
+            printPoint(i);
+        }
     }
 
-    else if(!strcmp(argv[2], "deletestring"))
+    else if (!strcmp(benchmark, "deletestring"))
     {
         for(i = 0; i < num_keys; i++)
             INSERT_STR_INTO_HASH(new_string_from_integer(i), value);
-        before = get_time();
-        for(i = 0; i < num_keys; i++)
+
+        startTime = get_time();
+        startData = get_data_mem();
+
+        for(i = 0; i < num_keys; i++) {
             DELETE_STR_FROM_HASH(new_string_from_integer(i));
+            printPoint(i);
+        }
     }
 
     /* This benchmark counts the number of distinct words (strings on nonspace characters) in the king james bible.
      */
-    else if (strcmp(argv[2], "kjvmark") == 0)
+    else if (!strcmp(benchmark, "kjvmark"))
     {
         const char * file = "data/king-james-bible.txt";
 
@@ -137,7 +197,9 @@ int main(int argc, char ** argv)
             exit(1);
         }
 
-        before = get_time();    // Reset start time now that preparations are done
+        // Reset start time and memory now that preparations are done
+        startTime = get_time();
+        startData = get_data_mem();
 
         size_t start = 0;
 
@@ -163,13 +225,12 @@ int main(int argc, char ** argv)
                     STR_HASH_GET_SIZE());
             exit(1);
         }
+
+        printPoint(-1);    // -1 forces printing
     }
 
-    else
+    else {
+        fprintf(stderr, "%s: No such benchmark '%s'", argv[0], benchmark);
         usage(argv[0]);
-
-    double after = get_time();
-    printf("%f\n", after-before);
-    fflush(stdout);
-    sleep(1000000);
+    }
 }

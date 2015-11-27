@@ -1,29 +1,22 @@
-import sys, os, subprocess, signal
+import os
+import re
+import signal
+import subprocess
+import sys
 
-programs = [
-    'glib_hash_table',
-    'stl_unordered_map',
-    'boost_unordered_map',
-    'google_sparse_hash_map',
-    'google_dense_hash_map',
-    'qt_qhash',
-    'python_dict',
-    'ruby_hash',
-]
-
-minkeys  =  2*1000*1000
-maxkeys  = 40*1000*1000
-interval =  2*1000*1000
 best_out_of = 2
+programs    = os.listdir("build")
+pattern     = re.compile(r'(\d+(?:\.\d+)?) (\d+)')
+maxkeys     = 40*1000*1000
+interval    =  2*1000*1000
 
 # for the final run, use this:
-#minkeys  =  2*1000*1000
 #maxkeys  = 40*1000*1000
 #interval =  2*1000*1000
 #best_out_of = 3
 # and use nice/ionice
 # and shut down to the console
-# and swapoff any swap files/partitions
+# and swapoff any swap files/partitions`
 
 outfile = open('output', 'w')
 
@@ -33,37 +26,47 @@ else:
     benchtypes = ('sequential', 'random', 'delete', 'sequentialstring', 'randomstring', 'deletestring')
 
 for benchtype in benchtypes:
-    nkeys = minkeys
-    while nkeys <= maxkeys:
-        for program in programs:
-            fastest_attempt = 1000000
-            fastest_attempt_data = ''
+    for program in programs:
+        fastest_attempt = []
 
-            for attempt in range(best_out_of):
-                proc = subprocess.Popen(['./build/'+program, str(nkeys), benchtype], stdout=subprocess.PIPE)
+        for attempt in range(best_out_of):
+            points = []
+            proc   = subprocess.Popen(['./build/' + program,  benchtype, str(maxkeys), str(interval)], stdout=subprocess.PIPE)
 
-                # wait for the program to fill up memory and spit out its "ready" message
-                try:
-                    runtime = float(proc.stdout.readline().strip())
-                except:
-                    runtime = 0
+            for size in range(interval, maxkeys, interval):
+                # wait for the benchmark to output a time and amount of data memory used
+                line = proc.stdout.readline()
 
-                ps_proc = subprocess.Popen(['ps up %d | tail -n1' % proc.pid], shell=True, stdout=subprocess.PIPE)
-                nbytes = int(ps_proc.stdout.read().split()[4]) * 1024
-                ps_proc.wait()
+                if not line:
+                    sys.stderr.write("%s: %s %s failed to output all results\n" % (__file__, program, benchtype))
+                    break
 
-                os.kill(proc.pid, signal.SIGKILL)
-                proc.wait()
+                match = pattern.match(line)
 
-                if nbytes and runtime: # otherwise it crashed
-                    line = ','.join(map(str, [benchtype, nkeys, program, nbytes, "%0.6f" % runtime]))
+                if not match:
+                    sys.stderr.write("%s: %s %s output did not contain time and memory: %s" % (__file__, program, benchtype, line))
+                    break
 
-                    if runtime < fastest_attempt:
-                        fastest_attempt = runtime
-                        fastest_attempt_data = line
+                points.append((float(match.group(1)), int(match.group(2))))
 
-            if fastest_attempt != 1000000:
-                print >> outfile, fastest_attempt_data
-                print fastest_attempt_data
+            # Shutdown the benchmark if needed
+            ps_proc = subprocess.Popen(['ps up %d | tail -n1' % proc.pid], shell=True, stdout=subprocess.PIPE)
+            nbytes = int(ps_proc.stdout.read().split()[4]) * 1024
+            ps_proc.wait()
+            os.kill(proc.pid, signal.SIGKILL)
+            proc.wait()
 
-        nkeys += interval
+            # If there is output and at least as much as any previous attempt
+            if len(points) > 0 and len(points) >= len(fastest_attempt):
+                if len(points) > len(fastest_attempt) or points[len(points) - 1][0] < fastest_attempt[len(fastest_attempt) - 1][0]:
+                    fastest_attempt = points
+
+        if len(fastest_attempt) > 0:
+            for i in range(len(fastest_attempt)):
+                size = (i + 1) * interval
+                outfile.write("%s,%d,%s,%d,%0.6f\n" % (benchtype, size, program, fastest_attempt[i][1], fastest_attempt[i][0]))
+
+            print "%s %s: %d keys, %fs, %d Kbytes" % (program, benchtype, size, fastest_attempt[i][0], fastest_attempt[i][1])
+
+        else:
+            print "No run of %s %s succeeded" % (program, benchtype)
