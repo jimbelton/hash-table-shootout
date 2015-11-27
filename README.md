@@ -57,5 +57,5 @@ allocate too much memory.
 
 ## Copyright Information
 
-Originally written by Nick Welch in 2010. Updated and enhanced by Jim Belton in 2015
-Copyright by Jim Belton. Licensed under the [MIT License](https://opensource.org/licenses/MIT)
+Originally written by Nick Welch in 2010. Updated and enhanced by Jim Belton in 2015.
+This version is copyright by Jim Belton and licensed under the [MIT License](https://opensource.org/licenses/MIT)
